@@ -1,2 +1,2 @@
-# react-currency
+# currency
  

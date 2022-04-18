@@ -10,61 +10,65 @@ const getToday = () => {
 };
 console.log(getToday());
 
-async function GetCurrencies() {
-  //Функция получения курса валют
-  const response = await fetch(
-    `https://www.nbrb.by/api/exrates/rates?ondate=${getToday()}&periodicity=0`
-  );
-  const result = await response.json();
-  for (let i = 0; i < 27; ++i) {
-    rates[i] = result[i];
+
+async function GetCurrencies () {  //Функция получения курса валют
+  try {
+    const response = await fetch(`https://www.nbrb.by/api/exrates/rates?ondate=${getToday()}&periodicity=0`); 
+    const result = await response.json();
+    rates.USD = result.find(item => item.Cur_ID == 431);
+    rates.EUR = result.find(item => item.Cur_ID == 451);
+    rates.RUB = result.find(item => item.Cur_ID == 456);
+    rates.UAH = result.find(item => item.Cur_ID == 449);
+    rates.PLN = result.find(item => item.Cur_ID == 452);
+    rates.BYN = {Cur_Abbreviation: "BYN", Cur_Scale: 1, Cur_Name: "Белорусский рубль", Cur_OfficialRate: 1} //Добавляем курс BYN
+
+    ExchangeValue()
+  } catch (error) {
   }
-  ExchangeValue();
 }
 
-function ExchangeValue() {
-  console.log(rates[2]);
-  const elementUSD = document.querySelector('[data-value="USD"]');
-  const elementEUR = document.querySelector('[data-value="EUR"]');
-  const elementRUB = document.querySelector('[data-value="RUB"]');
-  const select = document.querySelector("#select");
-  // elementUSD.textContent = (
-  //   (rates[select.value].Cur_OfficialRate / rates.USD.Cur_OfficialRate) *
-  //   rates.USD.Cur_Scale
-  // ).toFixed(2);
-  // elementEUR.textContent = (
-  //   (rates[select.value].Cur_OfficialRate / rates.EUR.Cur_OfficialRate) *
-  //   rates.EUR.Cur_Scale
-  // ).toFixed(2);
-  // elementRUB.textContent = (
-  //   (rates[select.value].Cur_OfficialRate / rates.RUB.Cur_OfficialRate) *
-  //   rates.RUB.Cur_Scale
-  // ).toFixed(2);
+function ExchangeValue(){ //Функция вычисления и отображения курса валют
+      const elementUSD = document.querySelector('[data-value="USD"]');
+      const elementEUR = document.querySelector('[data-value="EUR"]');
+      const elementRUB = document.querySelector('[data-value="RUB"]');
+      const select = document.querySelector('#select');
+      elementUSD.textContent = ((rates[select.value].Cur_OfficialRate / rates.USD.Cur_OfficialRate) * rates.USD.Cur_Scale).toFixed(2);
+      elementEUR.textContent = ((rates[select.value].Cur_OfficialRate / rates.EUR.Cur_OfficialRate)* rates.EUR.Cur_Scale).toFixed(2);
+      elementRUB.textContent = ((rates[select.value].Cur_OfficialRate / rates.RUB.Cur_OfficialRate) * rates.RUB.Cur_Scale).toFixed(2);
 }
 
-function ConvertValue() {
-  //Функция вычисления и отображения конвертации
-  //Элементы формы, ввод суммы, выбор валюты, поле с результатом
-  const input = document.querySelector("#input");
-  const result = document.querySelector("#result");
-  const selectPay = document.querySelector("#selectPay");
-  const selectReceive = document.querySelector("#selectReceive");
-  const select = document.querySelector("#select");
-  //  result.value = (
-  //    (parseFloat(input.value) *
-  //      (rates[selectPay.value].Cur_OfficialRate /
-  //        rates[selectPay.value].Cur_Scale)) /
-  //    (rates[selectReceive.value].Cur_OfficialRate /
-  //      rates[selectReceive.value].Cur_Scale)
-  //  ).toFixed(2);
-  result.value = parseFloat(result.value);
-}
+ function ConvertValue() { //Функция вычисления и отображения конвертации
+       //Элементы формы, ввод суммы, выбор валюты, поле с результатом
+       const input = document.querySelector('#input');
+       const result = document.querySelector('#result');
+       const selectPay = document.querySelector('#selectPay');
+       const selectReceive = document.querySelector('#selectReceive'); 
+       result.value = ((parseFloat(input.value) * (rates[selectPay.value].Cur_OfficialRate / rates[selectPay.value].Cur_Scale)) / (rates[selectReceive.value].Cur_OfficialRate / rates[selectReceive.value].Cur_Scale)).toFixed(4);
+ }
+
+ function Convertinput() { //Функция вычисления и отображения конвертации
+      //Элементы формы, ввод суммы, выбор валюты, поле с результатом
+      const input = document.querySelector('#input');
+      const result = document.querySelector('#result');
+      const selectPay = document.querySelector('#selectPay');
+      const selectReceive = document.querySelector('#selectReceive'); 
+      input.value = (parseFloat(result.value) * rates[selectReceive.value].Cur_OfficialRate / rates[selectReceive.value].Cur_Scale).toFixed(4);
+ }
 
 function App() {
   //Определяем какая вкладка открыта
   const [exchangeOpened, setExchangeOpened] = React.useState(true);
   const [converterOpened, setConverterOpened] = React.useState(false);
   const [calendarValue, onChangeCalendar] = useState(new Date());
+
+  Render();
+
+  function Render() {
+    useEffect(() => {
+    GetCurrencies();  
+    },);
+    return null;
+  }
 
   return (
     <div className="wrapper">
@@ -86,8 +90,8 @@ function App() {
             <button
               className="button"
               onClick={() => (
-                setConverterOpened(true), setExchangeOpened(false)
-                // GetCurrencies()
+                setConverterOpened(true), setExchangeOpened(false),
+                GetCurrencies()
               )}
             >
               Конвентер валют
@@ -141,11 +145,11 @@ function App() {
                   type="number"
                   className="form-control"
                   autoFocus
-                  onInput={ConvertValue}
+                  onInput={Convertinput}
                 />
               </div>
             </div>
-            <Calendar onChange={onChangeCalendar} value={calendarValue} />
+            <Calendar onChange={(value, event) => alert('New date is: ', event)} value={calendarValue} />
           </div>
         ) : null}
 
@@ -156,12 +160,13 @@ function App() {
               <select
                 id="select"
                 className="form-control"
-                disabled="disabled"
-                // onInput={ExchangeValue}
+                onInput={ExchangeValue}
               >
-                <option value="BYN" defaultValue>
-                  BYN - Белорусский рубль
-                </option>
+                <option value="BYN">BYN - Белорусский рубль</option>
+                <option value="EUR">EUR - Евро</option>
+                <option value="RUB">RUB - Рубль</option>
+                <option value="UAH">UAH - Гривен</option>
+                <option value="PLN">PLN - Злотых</option>
               </select>
             </h1>
 
